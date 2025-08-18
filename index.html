@@ -17,26 +17,68 @@
     .controls{font-size:13px;line-height:1.6;color:#cbd5e1}
     button{width:100%;padding:8px;border-radius:6px;border:0;background:#3a3a3a;color:#fff;cursor:pointer}
     small{color:#94a3b8}
-    
-    a[href*="github"]:hover {
-      background: white !important;
+    a[href*="github"]:hover { background: white !important; }
+    a[href*="github"]:hover svg { fill: black !important; }
+    .wasd-toggle {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      display: flex;
+      align-items: center;
+      gap: .5em;
+      font-size: 13px;
+      color: #cbd5e1;
     }
-    a[href*="github"]:hover svg {
-      fill: black !important;
+    .switch {
+      display: inline-block;
+      width: 3em;
+      height: 1.5em;
+      position: relative;
     }
-
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #666;
+      border-radius: 1.5em;
+      transition: .2s;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 1.1em;
+      width: 1.1em;
+      left: 0.2em;
+      bottom: 0.2em;
+      background-color: white;
+      border-radius: 50%;
+      transition: .2s;
+    }
+    input:checked + .slider { background-color: #4caf50; }
+    input:checked + .slider:before { transform: translateX(1.5em); }
   </style>
 </head>
 <body>
-  
-  <a href="https://github.com/Dslime8" target="_blank" style="position:fixed;bottom:1em;right:1em;width:3em;height:3em;display:flex;align-items:center;justify-content:center;border-radius:50%;background:black;transition:.2s;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="1.5em" height="1.5em" style="transition:.2s;"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2.1c-3.2.7-3.9-1.5-3.9-1.5-.6-1.5-1.3-1.9-1.3-1.9-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1 .1.6 2.3 3.4 1.7 0-.9.4-1.5.8-1.9-2.5-.3-5.1-1.3-5.1-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.6.1-3.3 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.7.2 3 .1 3.3.8.8 1.2 1.8 1.2 3.1 0 4.4-2.6 5.4-5.1 5.7.4.4.8 1.1.8 2.3v3.4c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg></a>
-
+  <a href="https://github.com/Dslime8" target="_blank" style="position:fixed;bottom:1em;right:1em;width:3em;height:3em;display:flex;align-items:center;justify-content:center;border-radius:50%;background:black;transition:.2s;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="1.5em" height="1.5em" style="transition:.2s;">
+      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2.1c-3.2.7-3.9-1.5-3.9-1.5-.6-1.5-1.3-1.9-1.3-1.9-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1 .1.6 2.3 3.4 1.7 0-.9.4-1.5.8-1.9-2.5-.3-5.1-1.3-5.1-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.6.1-3.3 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.7.2 3 .1 3.3.8.8 1.2 1.8 1.2 3.1 0 4.4-2.6 5.4-5.1 5.7.4.4.8 1.1.8 2.3v3.4c0 .3.2.7.8.6A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/>
+    </svg>
+  </a>
+  <div class="wasd-toggle">
+    <span>WASD Movement</span>
+    <label class="switch">
+      <input type="checkbox" id="wasdToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
   <div class="wrap">
     <div>
       <canvas id="board" width="280" height="560"></canvas>
     </div>
     <div class="panel">
       <h1>Tetris</h1>
+      <div class="stat"><span>High Score</span><strong id="highscore">0</strong></div>
       <div class="stat"><span>Score</span><strong id="score">0</strong></div>
       <div class="stat"><span>Lines</span><strong id="lines">0</strong></div>
       <div class="stat"><span>Level</span><strong id="level">1</strong></div>
@@ -71,42 +113,49 @@
   <script>
     const COLS=10,ROWS=20,BLOCK=28;
     const COLORS={I:'#67e8f9',J:'#60a5fa',L:'#fb923c',O:'#facc15',S:'#34d399',T:'#a78bfa',Z:'#f87171'};
-    const PIECES={I:[['....','IIII','....','....'],['..I.','..I.','..I.','..I.']],
-                  J:[['J..','JJJ','...'],['.JJ','.J.','.J.'],['...','JJJ','..J'],['.J.','.J.','.JJ']],
-                  L:[['..L','LLL','...'],['.L.','.L.','.LL'],['...','LLL','L..'],['LL.','.L.','.L.']],
-                  O:[['OO','OO']],
-                  S:[['.SS','SS.','...'],['.S.','.SS','..S']],
-                  T:[['.T.','TTT','...'],['.T.','.TT','.T.'],['...','TTT','.T.'],['.T.','TT.','.T.']],
-                  Z:[['ZZ.','.ZZ','...'],['..Z','.ZZ','.Z.']]};
+    const PIECES = {
+      I:[['....','IIII','....','....'],['..I.','..I.','..I.','..I.']],
+      J:[['J..','JJJ','...'],['.JJ','.J.','.J.'],['...','JJJ','..J'],['.J.','.J.','JJ.']],
+      L:[['..L','LLL','...'],['.L.','.L.','.LL'],['...','LLL','L..'],['LL.','.L.','.L.']],
+      O:[['OO','OO']],
+      S:[['.SS','SS.','...'],['.S.','.SS','..S']],
+      T:[['.T.','TTT','...'],['.T.','.TT','.T.'],['...','TTT','.T.'],['.T.','TT.','.T.']],
+      Z:[['ZZ.','.ZZ','...'],['..Z','.ZZ','.Z.']]
+    };
 
-    function shapeToRotations(s){
-      return s.map(g=>{
+    function shapeToRotations(s) {
+      return s.map(g => {
         const cells=[];
         for(let y=0;y<g.length;y++){
           for(let x=0;x<g[0].length;x++){
             if(g[y][x]!=='.') cells.push([x,y]);
           }
         }
-        return{cells,w:g[0].length,h:g.length};
+        return {cells,w:g[0].length,h:g.length};
       });
     }
+
     const SHAPES={};
     for(const k in PIECES) SHAPES[k]=shapeToRotations(PIECES[k]);
 
     const canvas=document.getElementById('board'),ctx=canvas.getContext('2d');
     canvas.width=COLS*BLOCK;canvas.height=ROWS*BLOCK;
-    
+
     let grid=createEmptyGrid(),score=0,lines=0,level=1,current=null,nextQueue=[],holdPiece=null,holdLocked=false,dropInterval=800,lastDrop=0,running=false,paused=false;
     let softDropHeld=false,leftHeld=false,rightHeld=false,lastSideMove=0;
     const SIDE_MOVE_INTERVAL=100;
 
     const scoreEl=document.getElementById('score'),
+          highScoreEl=document.getElementById('highscore'),
           linesEl=document.getElementById('lines'),
           levelEl=document.getElementById('level'),
           nextEl=document.getElementById('next'),
           holdEl=document.getElementById('hold');
     const startBtn=document.getElementById('start');
     const pauseBtn=document.getElementById('pause');
+
+    let highScore=parseInt(localStorage.getItem("tetrisHighScore"))||0;
+    highScoreEl.textContent=highScore;
 
     startBtn.onclick=()=>{
       if(!running){ startGame(); }
@@ -118,7 +167,7 @@
       paused=!paused;
       updateButtonLabels();
     };
-    
+
     function updateButtonLabels(){
       startBtn.textContent=running?"Restart":"Start";
       pauseBtn.textContent=paused?"Unpause":"Pause";
@@ -127,14 +176,17 @@
     function createEmptyGrid(){
       return Array.from({length:ROWS},()=>Array(COLS).fill(null));
     }
+
     function randBag(){
       const t=Object.keys(SHAPES),b=[];
       while(t.length) b.push(t.splice(Math.floor(Math.random()*t.length),1)[0]);
       return b;
     }
+
     function refillQueue(){
       if(nextQueue.length<7) nextQueue=nextQueue.concat(randBag());
     }
+
     function spawn(){
       if(!running) return;
       refillQueue();
@@ -148,6 +200,11 @@
         grid=createEmptyGrid();
         current=null;
         draw();
+        if(score>highScore){
+          highScore=score;
+          localStorage.setItem("tetrisHighScore",highScore);
+          highScoreEl.textContent=highScore;
+        }
         alert('Game Over — score: '+score);
         return;
       }
@@ -159,7 +216,7 @@
       for(const[sx,sy] of shape.cells){
         const x=p.x+sx+dx,y=p.y+sy+dy;
         if(x<0||x>=COLS||y>=ROWS) return true;
-        if(y>=0 && grid[y][x]) return true;
+        if(y>=0&&grid[y][x]) return true;
       }
       return false;
     }
@@ -218,7 +275,7 @@
       for(let y=0;y<4;y++){
         for(let x=0;x<4;x++){
           const c=document.createElement('div');
-          if(cells.some(([cx,cy])=>cx-minx===x && cy-miny===y)){
+          if(cells.some(([cx,cy])=>cx-minx===x&&cy-miny===y)){
             c.style.background=COLORS[type];
             c.style.borderRadius='3px';
           }
@@ -229,23 +286,48 @@
     }
 
     const keys={};
-    window.addEventListener('keydown',e=>{
-      if(!running || paused || keys[e.code]) return;
-      keys[e.code]=true;
-      if(e.code==='ArrowLeft') leftHeld=true;
-      if(e.code==='ArrowRight') rightHeld=true;
-      if(e.code==='ArrowDown') softDropHeld=true;
-      if(e.code==='ArrowUp') rotate(1);
-      if(e.code==='ShiftLeft' || e.code==='ShiftRight') hold();
-    });
-    window.addEventListener('keyup',e=>{
-      keys[e.code]=false;
-      if(e.code==='ArrowLeft') leftHeld=false;
-      if(e.code==='ArrowRight') rightHeld=false;
-      if(e.code==='ArrowDown') softDropHeld=false;
+    let useWasd=localStorage.getItem("useWasd")==="true";
+    const toggle=document.getElementById("wasdToggle");
+    toggle.checked=useWasd;
+    toggle.addEventListener("change",()=>{
+      useWasd=toggle.checked;
+      localStorage.setItem("useWasd",useWasd);
     });
 
-    function move(d){ if(current && !collides(current,d,0)) current.x+=d; }
+    window.addEventListener('keydown',e=>{
+      if(!running||paused||keys[e.code]) return;
+      keys[e.code]=true;
+      if(useWasd){
+        if(e.key==='a'||e.key==='A') leftHeld=true;
+        if(e.key==='d'||e.key==='D') rightHeld=true;
+        if(e.key==='s'||e.key==='S') softDropHeld=true;
+        if(e.key==='w'||e.key==='W') rotate(1);
+      } else {
+        if(e.code==='ArrowLeft') leftHeld=true;
+        if(e.code==='ArrowRight') rightHeld=true;
+        if(e.code==='ArrowDown') softDropHeld=true;
+        if(e.code==='ArrowUp') rotate(1);
+      }
+      if(e.code==='ShiftLeft'||e.code==='ShiftRight') hold();
+    });
+
+    window.addEventListener('keyup',e=>{
+      keys[e.code]=false;
+      if(useWasd){
+        if(e.key==='a'||e.key==='A') leftHeld=false;
+        if(e.key==='d'||e.key==='D') rightHeld=false;
+        if(e.key==='s'||e.key==='S') softDropHeld=false;
+      } else {
+        if(e.code==='ArrowLeft') leftHeld=false;
+        if(e.code==='ArrowRight') rightHeld=false;
+        if(e.code==='ArrowDown') softDropHeld=false;
+      }
+    });
+
+    function move(d){
+      if(current&&!collides(current,d,0)) current.x+=d;
+    }
+
     function softDrop(){
       if(!current) return;
       if(!collides(current,0,1)){
@@ -254,6 +336,7 @@
         lockPiece();
       }
     }
+
     function rotate(d){
       if(!current) return;
       const old=current.rot,len=SHAPES[current.type].length;
@@ -268,6 +351,7 @@
       }
       current.rot=old;
     }
+
     function hold(){
       if(holdLocked) return;
       if(!holdPiece){
@@ -283,6 +367,11 @@
           grid=createEmptyGrid();
           current=null;
           draw();
+          if(score>highScore){
+            highScore=score;
+            localStorage.setItem("tetrisHighScore",highScore);
+            highScoreEl.textContent=highScore;
+          }
           alert('Game Over - score: '+score);
           return;
         }
@@ -309,8 +398,18 @@
       }
       ctx.strokeStyle='rgba(255,255,255,0.12)';
       ctx.lineWidth=1;
-      for(let x=0;x<=COLS;x++){ ctx.beginPath(); ctx.moveTo(x*BLOCK,0); ctx.lineTo(x*BLOCK,ROWS*BLOCK); ctx.stroke(); }
-      for(let y=0;y<=ROWS;y++){ ctx.beginPath(); ctx.moveTo(0,y*BLOCK); ctx.lineTo(COLS*BLOCK,y*BLOCK); ctx.stroke(); }
+      for(let x=0;x<=COLS;x++){
+        ctx.beginPath();
+        ctx.moveTo(x*BLOCK,0);
+        ctx.lineTo(x*BLOCK,ROWS*BLOCK);
+        ctx.stroke();
+      }
+      for(let y=0;y<=ROWS;y++){
+        ctx.beginPath();
+        ctx.moveTo(0,y*BLOCK);
+        ctx.lineTo(COLS*BLOCK,y*BLOCK);
+        ctx.stroke();
+      }
     }
 
     function drawPiece(p,ghost=false){
@@ -319,6 +418,7 @@
         if(y>=0) drawCell(x,y,ghost?shade(COLORS[p.type],-40):COLORS[p.type]);
       }
     }
+
     function drawCell(x,y,color){
       const px=x*BLOCK,py=y*BLOCK;
       ctx.fillStyle=color;
@@ -326,20 +426,31 @@
       ctx.fillStyle='rgba(0,0,0,0.18)';
       ctx.fillRect(px+1,py+BLOCK-8,BLOCK-2,6);
     }
+
     function shade(hex,p){
-      const f=parseInt(hex.slice(1),16),t=p<0?0:255,pr=Math.abs(p)/100,
-            R=f>>16,G=(f>>8)&0x00FF,B=f&0x0000FF;
-      return '#'+( (Math.round((t-R)*pr)+R<<16) | (Math.round((t-G)*pr)+G<<8) | (Math.round((t-B)*pr)+B) ).toString(16).padStart(6,'0');
+      const f=parseInt(hex.slice(1),16),
+            t=p<0?0:255,
+            pr=Math.abs(p)/100,
+            R=f>>16,
+            G=(f>>8)&0x00FF,
+            B=f&0x0000FF;
+      return '#'+((Math.round((t-R)*pr)+R<<16)|(Math.round((t-G)*pr)+G<<8)|(Math.round((t-B)*pr)+B)).toString(16).padStart(6,'0');
     }
 
     function resetInputState(){
-      softDropHeld=false; leftHeld=false; rightHeld=false;
+      softDropHeld=false;
+      leftHeld=false;
+      rightHeld=false;
       for(const k in keys) keys[k]=false;
     }
 
     function update(ts){
       if(!running) return;
-      if(paused){ draw(); requestAnimationFrame(update); return; }
+      if(paused){
+        draw();
+        requestAnimationFrame(update);
+        return;
+      }
       if(!lastDrop) lastDrop=ts;
       const interval=softDropHeld?50:dropInterval;
       if(ts-lastDrop>interval){
@@ -359,10 +470,24 @@
 
     function startGame(){
       resetInputState();
-      grid=createEmptyGrid(); score=0; lines=0; level=1; dropInterval=800; lastDrop=0; lastSideMove=0; nextQueue=[]; holdPiece=null; holdLocked=false; current=null;
-      refillQueue(); refillQueue();
-      running=true; paused=false; updateButtonLabels();
-      spawn(); updateHud();
+      grid=createEmptyGrid();
+      score=0;
+      lines=0;
+      level=1;
+      dropInterval=800;
+      lastDrop=0;
+      lastSideMove=0;
+      nextQueue=[];
+      holdPiece=null;
+      holdLocked=false;
+      current=null;
+      refillQueue();
+      refillQueue();
+      running=true;
+      paused=false;
+      updateButtonLabels();
+      spawn();
+      updateHud();
       requestAnimationFrame(update);
     }
 
