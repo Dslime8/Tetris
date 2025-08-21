@@ -10,48 +10,45 @@
       --bg: #111;
       --panel-bg: #1e1e1e;
       --canvas-bg: #000;
-      --panel-text: #e6eef8;
       --button-bg: #3a3a3a;
-      --button-text: #fff;
       --slot-bg: var(--canvas-bg);
       --grid-line: rgba(255,255,255,0.12);
-      --accent: #4caf50;
       --option-ring: #000;
     }
     :root[data-theme="blue"]{
       --bg: #010617;
       --panel-bg: #041017;
       --canvas-bg: #00040a;
-      --panel-text: #bfdff0;
       --button-bg: #0e2730;
-      --button-text: #d9f0fb;
       --slot-bg: var(--canvas-bg);
       --grid-line: rgba(170,200,220,0.10);
-      --accent: #4caf50;
       --option-ring: #000;
     }
     :root[data-theme="red"]{
       --bg: #120606;
       --panel-bg: #1a0707;
       --canvas-bg: #040202;
-      --panel-text: #ffdede;
       --button-bg: #3a0b0b;
-      --button-text: #ffecec;
       --slot-bg: var(--canvas-bg);
       --grid-line: rgba(255,180,180,0.10);
-      --accent: #e05252;
+      --option-ring: #000;
+    }
+    :root[data-theme="purple"]{
+      --bg: #0a0210;
+      --panel-bg: #12071a;
+      --canvas-bg: #06020a;
+      --button-bg: #2a1030;
+      --slot-bg: var(--canvas-bg);
+      --grid-line: rgba(200,160,255,0.08);
       --option-ring: #000;
     }
     :root[data-theme="default"]{
       --bg: #111;
       --panel-bg: #1e1e1e;
       --canvas-bg: #000;
-      --panel-text: #e6eef8;
       --button-bg: #3a3a3a;
-      --button-text: #fff;
       --slot-bg: var(--canvas-bg);
       --grid-line: rgba(255,255,255,0.12);
-      --accent: #4caf50;
       --option-ring: #000;
     }
     *{box-sizing:border-box;font-family:Consolas,monospace}
@@ -142,6 +139,11 @@
       transition:.12s;
       box-sizing:content-box;
     }
+    .theme-option.ring-hidden {
+      border:1px solid transparent !important;
+      border-color: transparent !important;
+    }
+    
     .theme-option .dot {
       width:20px;
       height:20px;
@@ -151,6 +153,7 @@
     .theme-option[data-theme="default"] .dot { background: #3a3a3a; }
     .theme-option[data-theme="blue"] .dot    { background: #0000ff; }
     .theme-option[data-theme="red"] .dot     { background: #ff0000; }
+    .theme-option[data-theme="purple"] .dot  { background: #8000ff; }
     .theme-input:checked + label.theme-option {
       border-color: #fff;
     }
@@ -560,6 +563,172 @@
     updateButtonLabels();
     draw();
     updateHud();
+  </script>
+
+  <script>
+  (function(){
+    const SEQ_REQUIRED = 5;
+    const DURATION = 700;
+    const EASING = 'cubic-bezier(.22,.9,.32,1)';
+    const THEME_KEY = 'tetrisTheme';
+
+    let blueCount = 0, redCount = 0, unlocked = false;
+
+    const themeBar = document.querySelector('.theme-options');
+    const blueLabel = document.querySelector('label.theme-option[data-theme="blue"]');
+    const redLabel  = document.querySelector('label.theme-option[data-theme="red"]');
+    const blueInput = document.getElementById('theme-blue');
+    const redInput  = document.getElementById('theme-red');
+
+    if(!themeBar || !blueLabel || !redLabel) return;
+
+    function resetSeq(){ blueCount = 0; redCount = 0; }
+
+    themeBar.addEventListener('click', (e) => {
+      const lbl = e.target.closest('label.theme-option');
+      if(!lbl) return;
+
+      if(lbl.textContent.trim() === '←'){
+        revertToNormal();
+        return;
+      }
+
+      if(unlocked) return;
+
+      const theme = lbl.getAttribute('data-theme');
+      if(theme === 'blue'){
+        blueCount++;
+        redCount = 0;
+        if(blueCount > SEQ_REQUIRED){
+          resetSeq();
+          blueCount = 1;
+        }
+      } else if(theme === 'red'){
+        if(blueCount === SEQ_REQUIRED){
+          redCount++;
+          if(redCount > SEQ_REQUIRED){
+            resetSeq();
+          } else if(redCount === SEQ_REQUIRED){
+            unlockPurpleTheme();
+          }
+        } else {
+          resetSeq();
+        }
+      } else {
+        resetSeq();
+      }
+    });
+
+    function ensureDot(label, themeName){
+      let d = label.querySelector('.dot');
+      if(!d){
+        label.textContent = '';
+        d = document.createElement('span');
+        d.className = 'dot';
+        label.appendChild(d);
+        label.setAttribute('data-theme', themeName);
+      }
+      return d;
+    }
+
+    function unlockPurpleTheme(){
+      unlocked = true;
+      resetSeq();
+
+      const blueDot = ensureDot(blueLabel, 'blue');
+      const redDot  = ensureDot(redLabel, 'red');
+
+      const redRect = redDot.getBoundingClientRect();
+      const blueRect = blueDot.getBoundingClientRect();
+
+      const from = { x: redRect.left + redRect.width/2, y: redRect.top + redRect.height/2 };
+      const to   = { x: blueRect.left + blueRect.width/2, y: blueRect.top + blueRect.height/2 };
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+
+      const clone = redDot.cloneNode(true);
+      clone.style.position = 'fixed';
+      clone.style.left = from.x + 'px';
+      clone.style.top  = from.y + 'px';
+      clone.style.transform = 'translate(-50%,-50%)';
+      clone.style.width = redRect.width + 'px';
+      clone.style.height = redRect.height + 'px';
+      clone.style.borderRadius = '50%';
+      clone.style.pointerEvents = 'none';
+      clone.style.zIndex = 9999;
+      clone.style.background = getComputedStyle(redDot).backgroundColor || '#ff0000';
+      document.body.appendChild(clone);
+
+      const redOriginalDot = redDot;
+      redOriginalDot.remove();
+
+      const anim = clone.animate([
+        { transform: 'translate(-50%,-50%) translate(0px,0px)', background: getComputedStyle(redOriginalDot).backgroundColor || '#ff0000' },
+        { transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px)`, background: '#8000ff' }
+      ], { duration: DURATION, easing: EASING, fill: 'forwards' });
+
+      requestAnimationFrame(()=> {
+        setTimeout(()=> {
+          blueDot.style.transition = `background ${DURATION}ms ${EASING}`;
+          blueDot.style.background = '#8000ff';
+	        blueLabel.classList.add('ring-hidden');
+          redLabel.classList.add('ring-hidden');
+        }, 10);
+      });
+
+      anim.onfinish = () => {
+        applyTheme('purple');
+
+        blueLabel.setAttribute('data-theme', 'purple');
+        if(blueInput) {
+          blueInput.value = 'purple';
+          blueInput.checked = true;
+        }
+
+        redLabel.textContent = '←';
+       	blueLabel.classList.remove('ring-hidden');
+
+        try{ localStorage.setItem(THEME_KEY, 'purple'); }catch(e){}
+
+        setTimeout(()=> { try{ clone.remove(); }catch(e){} }, 400);
+
+        setTimeout(()=> { blueDot.style.transition = ''; }, DURATION + 100);
+      };
+    }
+
+    function revertToNormal(){
+      unlocked = false;
+      resetSeq();
+
+      blueLabel.setAttribute('data-theme', 'blue');
+      if(blueInput) { blueInput.value = 'blue'; blueInput.checked = true; }
+      const bdot = ensureDot(blueLabel, 'blue');
+      bdot.style.background = '#0000ff';
+
+      redLabel.textContent = '';
+      const rdot = document.createElement('span');
+      rdot.className = 'dot';
+      redLabel.appendChild(rdot);
+      redLabel.setAttribute('data-theme', 'red');
+      if(redInput) { redInput.value = 'red'; redInput.checked = false; }
+      rdot.style.background = '#ff0000';
+
+      applyTheme('blue');
+
+      try{ localStorage.setItem(THEME_KEY, 'blue'); }catch(e){}
+
+      redLabel.classList.remove('ring-hidden');
+    }
+
+    if(localStorage.getItem(THEME_KEY) === 'purple'){
+      unlocked = true;
+      blueLabel.setAttribute('data-theme','purple');
+      if(blueInput) { blueInput.value = 'purple'; blueInput.checked = true; }
+      redLabel.textContent = '←';
+      redLabel.classList.add('ring-hidden');
+      applyTheme('purple');
+    }
+  })();
   </script>
 </body>
 </html>
